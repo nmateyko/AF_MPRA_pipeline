@@ -1,4 +1,5 @@
 import sys
+import gzip
 from Bio.SeqIO.QualityIO import FastqGeneralIterator
 
 input_fastq = snakemake.input[0]
@@ -8,7 +9,7 @@ output_fastq = snakemake.output[1]
 data = []
 trimmed_records = []
 
-with open(input_fastq, 'r') as in_fq, open(output_fastq, 'w') as out_fq, open(output_csv, 'w') as out_csv:
+with gzip.open(input_fastq, 'rt') as in_fq, gzip.open(output_fastq, 'wt') as out_fq, open(output_csv, 'w') as out_csv:
     out_csv.write("ID,First_20_BP\n") # Write header to csv
     parser = FastqGeneralIterator(in_fq)
     for header, seq, qual in parser:

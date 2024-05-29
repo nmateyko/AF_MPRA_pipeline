@@ -1,6 +1,6 @@
-data_dir: /scratch/st-cdeboer-1/najmeh/GSC-2024-04-12/pipeline/script/BWA/
+data_dir: /scratch/st-cdeboer-1/najmeh/GSC-2024-04-12/rawreads/
 
 samples:
     A7:
-        R1: A7_R1_00.fastq
-        R2: A7_R2_00.fastq
+        R1: A7_R1.fastq.gz
+        R2: A7_R2.fastq.gz

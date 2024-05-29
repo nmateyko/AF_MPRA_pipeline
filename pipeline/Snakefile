@@ -21,39 +21,40 @@ rule get_barcode:
         get_R1_fastq
     output: 
         csv="output/barcodes/{sample}.csv",
-        fastq="output/trimmed_45/{sample}.fastq"
+        fastq="output/trimmed_45/{sample}.fastq.gz"
     conda:
         "environment.yaml"
     threads: 1
     resources:
         mem_mb=4800,
-        time="00:20:00"
+        time="02:00:00"
     script: "scripts/make_BC_fastq_R1.py"
 
 rule align:
     input:
-        r1 = "output/trimmed_45/{sample}.fastq",
+        r1 = "output/trimmed_45/{sample}.fastq.gz",
         r2 = get_R2_fastq
     output: 
-        "output/aligned/{sample}_unaligned_pairs.1.fastq",
-        "output/aligned/{sample}_unaligned_pairs.2.fastq",
-        "output/aligned/{sample}_aligned_pairs.1.fastq",
-        "output/aligned/{sample}_aligned_pairs.2.fastq",
+        "output/aligned/{sample}_unaligned_pairs.1.fastq.gz",
+        "output/aligned/{sample}_unaligned_pairs.2.fastq.gz",
+        "output/aligned/{sample}_aligned_pairs.1.fastq.gz",
+        "output/aligned/{sample}_aligned_pairs.2.fastq.gz",
         sam = "output/aligned/{sample}.sam",
     log:
         "output/logs/bowtie/{sample}.log"
     params:
-        unal_prefix = "output/aligned/{sample}_unaligned_pairs.fastq",
-        al_prefix = "output/aligned/{sample}_aligned_pairs.fastq",
+        bowtie_index = "/scratch/st-cdeboer-1/najmeh/GSC-2024-04-12/pipeline/script/BWA/probe_wf",
+        unal_prefix = "output/aligned/{sample}_unaligned_pairs.%.fastq.gz",
+        al_prefix = "output/aligned/{sample}_aligned_pairs.%.fastq.gz",
     conda:
         "environment.yaml"
     threads: 4
     resources:
         mem_mb=16000,
-        time="01:00:00"
+        time="04:00:00"
     shell:
-        "bowtie2 -x /scratch/st-cdeboer-1/najmeh/GSC-2024-04-12/pipeline/script/BWA/probe_wf "
-        "--un-conc {params.unal_prefix} --al-conc {params.al_prefix} "
+        "bowtie2 -x {params.bowtie_index} "
+        "--un-conc-gz {params.unal_prefix} --al-conc-gz {params.al_prefix} "
         "-1 {input.r1} -2 {input.r2} -S {output.sam} --fr -p 4 --reorder 2> {log}"
 
 rule merge_sam_BC:
@@ -67,5 +68,5 @@ rule merge_sam_BC:
     threads: 1
     resources:
         mem_mb=4800,
-        time="00:20:00"
+        time="04:00:00"
     script: "scripts/merge_sam_BC.py"
