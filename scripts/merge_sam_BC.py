@@ -3,13 +3,13 @@ import pandas as pd
 import pysam
 
 def main():
-    csv_file = '/scratch/st-cdeboer-1/najmeh/GSC-2024-04-12/pipeline/script/BWA/extracted_A7_R1_00_BC.csv'
+    csv_file = snakemake.input[0]
     df_csv = pd.read_csv(csv_file)
 
     # Remove '/1' from the 'ID' column in the CSV
     df_csv['ID'] = df_csv['ID'].str.replace('/1$', '', regex=True)
 
-    sam_file = '/scratch/st-cdeboer-1/najmeh/GSC-2024-04-12/pipeline/script/BWA/R1_R2_00.output.sam'
+    sam_file = snakemake.input[1]
     samfile = pysam.AlignmentFile(sam_file, "r")
 
     data = []
@@ -32,7 +32,7 @@ def main():
     # Merge df on 'Read ID'
     merged_df = pd.merge(df_csv, df_sam, left_on='ID', right_on='Read ID', how='inner')
 
-    output_csv = '/scratch/st-cdeboer-1/najmeh/GSC-2024-04-12/pipeline/script/BWA/merged_R1_R2_00_sam_BC.csv'
+    output_csv = snakemake.output[0]
     merged_df.to_csv(output_csv, index=False)
 
 if __name__ == "__main__":

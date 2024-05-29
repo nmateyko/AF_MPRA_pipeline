@@ -1,0 +1,71 @@
+configfile: "pipeline_config.yaml"
+
+def get_R1_fastq(wildcards):
+    sample_file = config["samples"][wildcards.sample]['R1']
+    data_dir = config['data_dir']
+    return f"{data_dir}{sample_file}"
+
+def get_R2_fastq(wildcards):
+    sample_file = config["samples"][wildcards.sample]['R2']
+    data_dir = config['data_dir']
+    return f"{data_dir}{sample_file}"
+
+rule all:
+    localrule: True
+    input:
+        expand("output/merged/{sample}.csv", sample=config["samples"])
+
+
+rule get_barcode:
+    input:
+        get_R1_fastq
+    output: 
+        csv="output/barcodes/{sample}.csv",
+        fastq="output/trimmed_45/{sample}.fastq"
+    conda:
+        "environment.yaml"
+    threads: 1
+    resources:
+        mem_mb=4800,
+        time="00:20:00"
+    script: "scripts/make_BC_fastq_R1.py"
+
+rule align:
+    input:
+        r1 = "output/trimmed_45/{sample}.fastq",
+        r2 = get_R2_fastq
+    output: 
+        "output/aligned/{sample}_unaligned_pairs.1.fastq",
+        "output/aligned/{sample}_unaligned_pairs.2.fastq",
+        "output/aligned/{sample}_aligned_pairs.1.fastq",
+        "output/aligned/{sample}_aligned_pairs.2.fastq",
+        sam = "output/aligned/{sample}.sam",
+    log:
+        "output/logs/bowtie/{sample}.log"
+    params:
+        unal_prefix = "output/aligned/{sample}_unaligned_pairs.fastq",
+        al_prefix = "output/aligned/{sample}_aligned_pairs.fastq",
+    conda:
+        "environment.yaml"
+    threads: 4
+    resources:
+        mem_mb=16000,
+        time="01:00:00"
+    shell:
+        "bowtie2 -x /scratch/st-cdeboer-1/najmeh/GSC-2024-04-12/pipeline/script/BWA/probe_wf "
+        "--un-conc {params.unal_prefix} --al-conc {params.al_prefix} "
+        "-1 {input.r1} -2 {input.r2} -S {output.sam} --fr -p 4 --reorder 2> {log}"
+
+rule merge_sam_BC:
+    input:
+        barcodes="output/barcodes/{sample}.csv",
+        alignment="output/aligned/{sample}.sam"
+    output: 
+        "output/merged/{sample}.csv"
+    conda:
+        "environment.yaml"
+    threads: 1
+    resources:
+        mem_mb=4800,
+        time="00:20:00"
+    script: "scripts/merge_sam_BC.py"

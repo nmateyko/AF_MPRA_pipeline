@@ -1,9 +1,9 @@
 import sys
 from Bio.SeqIO.QualityIO import FastqGeneralIterator
 
-input_fastq = sys.argv[1]
-output_csv = sys.argv[2]
-output_fastq = sys.argv[3]
+input_fastq = snakemake.input[0]
+output_csv = snakemake.output[0]  
+output_fastq = snakemake.output[1]
 
 data = []
 trimmed_records = []
