@@ -1,9 +1,6 @@
 data_dir: /scratch/st-cdeboer-1/najmeh/GSC-2024-04-12/rawreads/
 
 samples:
-    A7:
-        barcode: A7_R1.fastq.gz
-        second: A7_R2.fastq.gz
     A2:
         barcode: A2_R2.fastq.gz
         second: A2_R1.fastq.gz

@@ -1,14 +1,23 @@
-configfile: "pipeline_config.yaml"
+configfile: "test_config.yaml"
 
-def get_R1_fastq(wildcards):
-    sample_file = config["samples"][wildcards.sample]['R1']
+def get_barcode_fastq(wildcards):
+    sample_file = config["samples"][wildcards.sample]['barcode']
     data_dir = config['data_dir']
     return f"{data_dir}{sample_file}"
 
-def get_R2_fastq(wildcards):
-    sample_file = config["samples"][wildcards.sample]['R2']
+def get_second_fastq(wildcards):
+    sample_file = config["samples"][wildcards.sample]['second']
     data_dir = config['data_dir']
     return f"{data_dir}{sample_file}"
+
+def get_fastq_bowtie(wildcards):
+    data_dir = config['data_dir']
+    if wildcards.sample == "A7":
+        R2_file = config["samples"][wildcards.sample]['second']
+        return [f"output/trimmed/{wildcards.sample}.fastq.gz", f"{data_dir}{R2_file}"]
+    else:
+        R1_file = config["samples"][wildcards.sample]['second']
+        return [f"{data_dir}{R1_file}", f"output/trimmed/{wildcards.sample}.fastq.gz"]
 
 rule all:
     localrule: True
@@ -18,10 +27,14 @@ rule all:
 
 rule get_barcode:
     input:
-        get_R1_fastq
+        get_barcode_fastq
     output: 
         csv="output/barcodes/{sample}.csv",
-        fastq="output/trimmed_45/{sample}.fastq.gz"
+        fastq="output/trimmed/{sample}.fastq.gz"
+    params:
+        upstream_len = lambda wc: config["upstream_len"][wc.sample],
+        bc_len = lambda wc: config["bc_len"][wc.sample],
+        downstream_len = lambda wc: config["downstream_len"][wc.sample],
     conda:
         "environment.yaml"
     threads: 1
@@ -32,8 +45,7 @@ rule get_barcode:
 
 rule align:
     input:
-        r1 = "output/trimmed_45/{sample}.fastq.gz",
-        r2 = get_R2_fastq
+        get_fastq_bowtie
     output: 
         "output/aligned/{sample}_unaligned_pairs.1.fastq.gz",
         "output/aligned/{sample}_unaligned_pairs.2.fastq.gz",
@@ -43,7 +55,7 @@ rule align:
     log:
         "output/logs/bowtie/{sample}.log"
     params:
-        bowtie_index = "/scratch/st-cdeboer-1/najmeh/GSC-2024-04-12/pipeline/script/BWA/probe_wf",
+        bowtie_index = lambda wc: config["index"][wc.sample],
         unal_prefix = "output/aligned/{sample}_unaligned_pairs.%.fastq.gz",
         al_prefix = "output/aligned/{sample}_aligned_pairs.%.fastq.gz",
     conda:
@@ -55,7 +67,7 @@ rule align:
     shell:
         "bowtie2 -x {params.bowtie_index} "
         "--un-conc-gz {params.unal_prefix} --al-conc-gz {params.al_prefix} "
-        "-1 {input.r1} -2 {input.r2} -S {output.sam} --fr -p 4 --reorder 2> {log}"
+        "-1 {input[0]} -2 {input[1]} -S {output.sam} --fr -p 4 --reorder 2> {log}"
 
 rule merge_sam_BC:
     input:
